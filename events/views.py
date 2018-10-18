@@ -43,7 +43,7 @@ class CategoryViewset(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
 
-    
+
 
 
 class UserViewset(viewsets.ModelViewSet):
