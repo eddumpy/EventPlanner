@@ -11,6 +11,11 @@ class Category(models.Model):
     def __str__(self):
         return self.name
 
+    def add_category_to_all_events(self):
+        events = Event.objects.all()
+        for event in events:
+            event.categories.add(self)
+
 
 class Event(models.Model):
     start = models.DateTimeField(auto_now=False)

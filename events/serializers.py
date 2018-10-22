@@ -9,7 +9,7 @@ class EventSerializer(serializers.ModelSerializer):
     author = serializers.SerializerMethodField()
     categories = serializers.SlugRelatedField(
         many=True,
-        read_only=True,
+        queryset=Category.objects.all(),
         slug_field='name'
      )
 
@@ -47,11 +47,26 @@ class EventSerializer(serializers.ModelSerializer):
         return "{} {}".format(user.first_name, user.last_name)
 
 
-class CategorySerializer(serializers.ModelSerializer):
+class EventCategorySerializer(serializers.ModelSerializer):
+    name = serializers.CharField(read_only=True)
+    delete_categories = serializers.PrimaryKeyRelatedField(write_only=True,
+                                                           queryset=Category.objects.all(),
+                                                           allow_null=True)
+    add_categories = serializers.PrimaryKeyRelatedField(write_only=True,
+                                                        queryset=Category.objects.all(),
+                                                        allow_null=True)
 
     class Meta:
         model = Category
-        fields = ('id', 'name',)
+        fields = ('id', 'name',  'add_categories', 'delete_categories',)
+
+
+class CategorySerializer(serializers.ModelSerializer):
+    add_to_all_events = serializers.BooleanField(write_only=True)
+
+    class Meta:
+        model = Category
+        fields = ('id', 'name', 'add_to_all_events')
 
 
 class UserSerializer(serializers.ModelSerializer):
