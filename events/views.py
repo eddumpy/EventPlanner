@@ -1,25 +1,38 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
-from .models import Event, Category
-from .serializers import EventSerializer, UserSerializer, CategorySerializer, EventCategorySerializer
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
-from django.contrib.auth.models import User
+from rest_framework.exceptions import ValidationError
+
+from .models import Event, Category
+from .serializers import EventSerializer, UserSerializer, CategorySerializer, EventCategorySerializer
 from .filters import EventFilter
 from .permissions import IsOwnerOrReadOnly
 
+from django.contrib.auth.models import User
+from django.db.models import Count, Min, Prefetch
+from django.db.models import Q
+from django.utils import timezone
+
 
 class EventViewSet(viewsets.ModelViewSet):
-    queryset = Event.objects.all()
     serializer_class = EventSerializer
     filter_class = EventFilter
     permission_classes = (IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly)
 
-    def get_queryset(self):
-        return Event.objects.select_related('author')
-
     def perform_create(self, serializer):
-        serializer.save(author=self.request.user)
+        serializer.save(author=serializer.context['request'].user)
+        serializer.instance.physical_categories = []
+        serializer.instance.online_categories = []
+
+    def get_queryset(self):
+        return Event.objects.select_related('author') \
+            .prefetch_related(Prefetch('categories',
+                                       queryset=Category.objects.filter(category_type__exact='Physical'),
+                                       to_attr='physical_categories'),
+                              Prefetch('categories',
+                                       queryset=Category.objects.filter(category_type__exact='Online'),
+                                       to_attr='online_categories'))
 
     @action(detail=True)
     def download_ics(self, request, pk, *args, **kwargs):
@@ -36,60 +49,53 @@ class EventViewSet(viewsets.ModelViewSet):
 
 
 class EventCategoryViewset(viewsets.ModelViewSet):
-    queryset = Event.objects.all()
     serializer_class = EventCategorySerializer
 
-    def list(self, request, *args, **kwargs):
-        pk = request.parser_context['kwargs']['parent_pk']
-        qs = self.queryset
-        event = qs.get(pk=int(pk))
-        categories = event.categories.all()
-
-        page = self.paginate_queryset(categories)
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
-
-        serializer = self.get_serializer(categories, many=True)
-        return Response(serializer.data)
-
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        # Gets the pk of the event which is passed in the url
-        pk = request.parser_context['kwargs']['parent_pk']
+    def get_queryset(self):
+        pk = self.request.parser_context['kwargs']['parent_pk']
         event = Event.objects.get(pk=int(pk))
+        return event.categories
 
-        # Gets the serializer data
-        add_category = serializer.validated_data.pop('add_categories')
-        delete_category = serializer.validated_data.pop('delete_categories')
+    def perform_destroy(self, instance):
+        qs = self.get_queryset()
+        qs.remove(instance)
 
-        if add_category:
-            event.categories.add(add_category)
-
-        if delete_category:
-            event.categories.remove(delete_category)
-
-        serializer = EventSerializer(event)
-        return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
+    def perform_create(self, serializer):
+        category_ids = serializer.validated_data['add_categories']
+        qs = self.get_queryset()
+        for pk in category_ids:
+            category = Category.objects.get(pk=int(pk))
+            qs.add(category)
 
 
 class CategoryViewset(viewsets.ModelViewSet):
-    queryset = Category.objects.all()
     serializer_class = CategorySerializer
 
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        add_to_event = serializer.validated_data.pop('add_to_all_events')
-        self.perform_create(serializer)
-        headers = self.get_success_headers(serializer.data)
+    def perform_create(self, serializer):
 
-        # Adds category to all events if add_to_all_events is True
+        # List of valid event types
+        valid_types = ["Physical", "Online"]
+
+        # Removes add to event from validated data
+        add_to_event = serializer.validated_data.pop('add_to_all_events')
+
+        # Checks the category type is valid
+        if serializer.validated_data['category_type'] in valid_types:
+            serializer.save()
+        else:
+            raise ValidationError("Event type should be either: " + " or ".join(valid_types))
+
+        # If add_to_all_events is True, add to all categories
         if add_to_event:
             serializer.instance.add_category_to_all_events()
-        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+        serializer.instance.num_events = 0
+        serializer.instance.upcoming_event = ''
+
+    def get_queryset(self):
+        return Category.objects.annotate(num_events=Count('event'),
+                                         upcoming_event=Min('event__start',
+                                                            filter=Q(event__start__gt=timezone.now())))
 
 
 class UserViewset(viewsets.ModelViewSet):

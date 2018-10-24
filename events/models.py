@@ -1,17 +1,21 @@
 from django.db import models
-from icalendar import Event as Eve, vDatetime
-from datetime import timedelta
 from django.utils import timezone
 from django.contrib.auth.models import User
+
+from icalendar import Event as Eve, vDatetime
+from datetime import timedelta
 
 
 class Category(models.Model):
     name = models.CharField(max_length=100)
+    category_type = models.CharField(max_length=50)
 
     def __str__(self):
         return self.name
 
     def add_category_to_all_events(self):
+        """Adds the category to all events"""
+
         events = Event.objects.all()
         for event in events:
             event.categories.add(self)
@@ -39,10 +43,12 @@ class Event(models.Model):
 
     def is_upcoming(self):
         """Checks to see if the event is starting in the next 24 hours"""
+
         return timezone.now() < self.start < timezone.now() + timedelta(days=1)
 
     def has_happened(self):
         """Checks to see if the event has taken place"""
+
         return self.end < timezone.now()
 
     class Meta:
