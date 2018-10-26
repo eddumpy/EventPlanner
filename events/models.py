@@ -7,8 +7,11 @@ from datetime import timedelta
 
 
 class Category(models.Model):
+    CATEGORY_TYPE_CHOICES = [('P', 'Physical'),
+                             ('O', 'Online')]
+
     name = models.CharField(max_length=100)
-    category_type = models.CharField(max_length=50)
+    category_type = models.CharField(max_length=50, choices=CATEGORY_TYPE_CHOICES)
 
     def __str__(self):
         return self.name

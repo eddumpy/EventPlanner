@@ -15,8 +15,8 @@ class CategoryTypeSerializer(serializers.ModelSerializer):
 
 class EventSerializer(serializers.ModelSerializer):
     author = serializers.SerializerMethodField()
-    physical_categories = serializers.SerializerMethodField()
-    online_categories = serializers.SerializerMethodField()
+    physical_categories = CategoryTypeSerializer(read_only=True, many=True)
+    online_categories = CategoryTypeSerializer(read_only=True, many=True)
 
     class Meta:
         model = Event
@@ -47,16 +47,6 @@ class EventSerializer(serializers.ModelSerializer):
                                   ". Please choose an alternative time.")
         return data
 
-    def get_physical_categories(self, event):
-        serializer = CategoryTypeSerializer(data=event.physical_categories, many=True)
-        serializer.is_valid()
-        return serializer.data
-
-    def get_online_categories(self, event):
-        serializer = CategoryTypeSerializer(data=event.online_categories, many=True)
-        serializer.is_valid()
-        return serializer.data
-
     def get_author(self, event):
         user = event.author
         return "{} {}".format(user.first_name, user.last_name)
@@ -76,8 +66,9 @@ class EventCategorySerializer(serializers.ModelSerializer):
 
 class CategorySerializer(serializers.ModelSerializer):
     add_to_all_events = serializers.BooleanField(write_only=True)
-    number_of_events = serializers.SerializerMethodField(read_only=True, allow_null=True)
-    next_upcoming_event = serializers.SerializerMethodField(read_only=True, allow_null=True)
+    number_of_events = serializers.IntegerField(read_only=True, source='num_events')
+    next_upcoming_event = serializers.DateTimeField(read_only=True, source='upcoming_event')
+    category_type = serializers.CharField(source='get_category_type_display')
 
     class Meta:
         model = Category
@@ -85,12 +76,6 @@ class CategorySerializer(serializers.ModelSerializer):
                   'next_upcoming_event', 'category_type',
                   'add_to_all_events')
         depth = 1
-
-    def get_number_of_events(self, category):
-        return category.num_events
-
-    def get_next_upcoming_event(self, category):
-        return category.upcoming_event
 
 
 class UserSerializer(serializers.ModelSerializer):

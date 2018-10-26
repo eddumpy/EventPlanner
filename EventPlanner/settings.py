@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+from celery.schedules import crontab
 import os
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
@@ -17,11 +19,13 @@ ALLOWED_HOSTS = []
 
 
 # Application definition
-
 INSTALLED_APPS = [
     'rest_framework',
     'rest_auth',
     'debug_toolbar',
+    'celerybeat_status',
+    'django_celery_beat',
+    'django_slack_notifications',
     'rest_framework.authtoken',
     'django_filters',
     'events.apps.EventsConfig',
@@ -55,11 +59,21 @@ REST_FRAMEWORK = {
 
 ROOT_URLCONF = 'EventPlanner.urls'
 
+SLACK_NOTIFICATIONS = {
+    'WEBHOOK_URL': 'https://hooks.slack.com/services/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',
+}
+
+CELERY_BROKER_URL = 'redis://localhost:6379'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379'
+CELERY_ACCEPT_CONTENT = ['application/json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'UTC'
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, 'templates')]
-        ,
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
