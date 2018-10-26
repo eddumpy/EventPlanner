@@ -26,3 +26,8 @@
 - Display when the last event is in the categories
 - Add extra field to event model to show physical or online
 - In the event list display the online and physical categories
+
+
+####Features 5: 
+- When you create an event it will post a notification on slack stating this person has created an event for this date, so name of the author and the event
+- When the event is starting you post a notification on slack, that this event is about to start
