@@ -4,13 +4,14 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 
 from .models import Event, Category
-from .serializers import EventSerializer, UserSerializer, CategorySerializer, EventCategorySerializer
+from .serializers import UserSerializer, CategorySerializer, EventCategorySerializer, \
+    EventSerializer, OnlineEventSerializer, PhysicalEventSerializer
 from .filters import EventFilter
 from .permissions import IsOwnerOrReadOnly
+from .pagination import EventPagination
 
 from django.contrib.auth.models import User
-from django.db.models import Count, Min, Prefetch
-from django.db.models import Q
+from django.db.models import Count, Min, Q
 from django.utils import timezone
 
 
@@ -18,18 +19,34 @@ class EventViewSet(viewsets.ModelViewSet):
     serializer_class = EventSerializer
     filter_class = EventFilter
     permission_classes = (IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly)
+    pagination_class = EventPagination
+
+    def get_serializer_class(self):
+        if self.action in ['retrieve']:
+            instance = self.get_object()
+            if getattr(instance, '_onlineevent_cache'):
+                return OnlineEventSerializer
+            elif getattr(instance, '_physicalevent_cache'):
+                return PhysicalEventSerializer
+            else:
+                return super(EventViewSet, self).get_serializer_class()
+        elif self.action in ['create'] and 'type' in self.request.data:
+            if self.request.data['type'] is 'physical':
+                return PhysicalEventSerializer
+            elif self.request.data['type'] is 'online':
+                return OnlineEventSerializer
+            else:
+                return super(EventViewSet, self).get_serializer_class()
+        else:
+            return super(EventViewSet, self).get_serializer_class()
 
     def perform_create(self, serializer):
         serializer.save(author=serializer.context['request'].user)
 
     def get_queryset(self):
-        return Event.objects.select_related('author') \
-            .prefetch_related(Prefetch('categories',
-                                       queryset=Category.objects.filter(category_type__exact='P'),
-                                       to_attr='physical_categories'),
-                              Prefetch('categories',
-                                       queryset=Category.objects.filter(category_type__exact='O'),
-                                       to_attr='online_categories'))
+        return Event.objects.select_related('author', 'onlineevent',
+                                            'physicalevent', 'physicalevent__location').prefetch_related(
+            'categories').order_by('start')
 
     @action(detail=True)
     def download_ics(self, request, pk, *args, **kwargs):

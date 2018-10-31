@@ -1,10 +1,17 @@
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
+from django.db import models
 
-from .models import Event, Category
+from .models import Event, Category, PhysicalEvent, OnlineEvent, Location
 
 from django.utils import timezone
 from django.contrib.auth.models import User
+
+
+class LocationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Location
+        fields = '__all__'
 
 
 class CategoryTypeSerializer(serializers.ModelSerializer):
@@ -13,15 +20,29 @@ class CategoryTypeSerializer(serializers.ModelSerializer):
         fields = ('id', 'name',)
 
 
+class EventListSerializer(serializers.ListSerializer):
+
+    def to_representation(self, data):
+        iterable = data.all() if isinstance(data, models.Manager) else data
+        serialized_data = [OnlineEventSerializer(context=self.context).to_representation(
+            instance=item._onlineevent_cache) if item._onlineevent_cache else PhysicalEventSerializer(
+            context=self.context).to_representation(instance=item._physicalevent_cache)
+                           for item in iterable]
+        return serialized_data
+
+
 class EventSerializer(serializers.ModelSerializer):
     author = serializers.SerializerMethodField()
-    physical_categories = CategoryTypeSerializer(read_only=True, many=True)
-    online_categories = CategoryTypeSerializer(read_only=True, many=True)
+    categories = CategoryTypeSerializer(many=True, read_only=True)
+    type = serializers.ChoiceField(choices=[('online', 'Online'), ('physical', 'Physical')], write_only=True)
+    is_mine = serializers.SerializerMethodField(read_only=True)
 
-    class Meta:
-        model = Event
-        fields = ('id', 'start', 'end', 'label', 'author', 'physical_categories', 'online_categories')
-        depth = 1
+    def create(self, validated_data):
+        validated_data.pop('type', None)
+        return super(EventSerializer, self).create(validated_data)
+
+    def get_is_mine(self, event):
+        return event.author == self.context['request'].user
 
     def validate_start(self, start):
         """Validates start field to ensure it is a date in the future"""
@@ -51,6 +72,11 @@ class EventSerializer(serializers.ModelSerializer):
         user = event.author
         return "{} {}".format(user.first_name, user.last_name)
 
+    class Meta:
+        model = Event
+        fields = ('id', 'start', 'end', 'label', 'author', 'categories', 'type', 'is_mine')
+        list_serializer_class = EventListSerializer
+
 
 class EventCategorySerializer(serializers.ModelSerializer):
     name = serializers.CharField(read_only=True)
@@ -68,13 +94,11 @@ class CategorySerializer(serializers.ModelSerializer):
     add_to_all_events = serializers.BooleanField(write_only=True)
     number_of_events = serializers.IntegerField(read_only=True, source='num_events')
     next_upcoming_event = serializers.DateTimeField(read_only=True, source='upcoming_event')
-    category_type = serializers.CharField(source='get_category_type_display')
 
     class Meta:
         model = Category
         fields = ('id', 'name', 'number_of_events',
-                  'next_upcoming_event', 'category_type',
-                  'add_to_all_events')
+                  'next_upcoming_event', 'add_to_all_events')
         depth = 1
 
 
@@ -86,4 +110,23 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('id', 'username', 'first_name', 'last_name', 'events',)
+        depth = 1
+
+
+class OnlineEventSerializer(EventSerializer):
+    event_type = serializers.CharField(read_only=True, default="Online")
+    url = serializers.URLField(default='')
+
+    class Meta(EventSerializer.Meta):
+        model = OnlineEvent
+        fields = EventSerializer.Meta.fields + ('event_type', 'url',)
+
+
+class PhysicalEventSerializer(EventSerializer):
+    event_type = serializers.CharField(read_only=True, default="Physical")
+    location = LocationSerializer
+
+    class Meta(EventSerializer.Meta):
+        model = PhysicalEvent
+        fields = EventSerializer.Meta.fields + ('event_type', 'location',)
         depth = 1

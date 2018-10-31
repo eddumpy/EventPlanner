@@ -3,11 +3,6 @@ from django.db.models.signals import post_save
 from events.models import Event
 from .tasks import event_reminder
 from django_slack_notifications.utils import send_text
-from EventPlanner.celery import app
-
-
-# from django_celery_beat.models import CrontabSchedule, PeriodicTask
-# import json
 
 
 @receiver(post_save, sender=Event)

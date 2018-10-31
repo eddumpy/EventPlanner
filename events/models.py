@@ -7,11 +7,7 @@ from datetime import timedelta
 
 
 class Category(models.Model):
-    CATEGORY_TYPE_CHOICES = [('P', 'Physical'),
-                             ('O', 'Online')]
-
     name = models.CharField(max_length=100)
-    category_type = models.CharField(max_length=50, choices=CATEGORY_TYPE_CHOICES)
 
     def __str__(self):
         return self.name
@@ -32,7 +28,7 @@ class Event(models.Model):
     author = models.ForeignKey('auth.User', related_name='events', on_delete=models.CASCADE)
 
     def __str__(self):
-        return self.label
+        return self.label + " " + str(self.id)
 
     def export_event(self):
         """Exports the event to ics"""
@@ -54,5 +50,19 @@ class Event(models.Model):
 
         return self.end < timezone.now()
 
-    class Meta:
-        ordering = ['start']
+
+class Location(models.Model):
+    address = models.CharField(max_length=300)
+    city = models.CharField(max_length=50)
+    postcode = models.CharField(max_length=50)
+
+    def __str__(self):
+        return self.address
+
+
+class OnlineEvent(Event):
+    url = models.URLField(max_length=300)
+
+
+class PhysicalEvent(Event):
+    location = models.ForeignKey(Location)
