@@ -23,6 +23,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_auth',
     'debug_toolbar',
+    'polymorphic',
     'celerybeat_status',
     'django_celery_beat',
     'django_slack_notifications',
@@ -56,7 +57,7 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': ('rest_framework.permissions.IsAuthenticated',),
 }
 
-ROOT_URLCONF = 'EventPlanner.urls'
+ROOT_URLCONF = 'eventplanner.urls'
 
 SLACK_NOTIFICATIONS = {
     'WEBHOOK_URL': 'https://hooks.slack.com/services/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',
@@ -85,7 +86,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'EventPlanner.wsgi.application'
+WSGI_APPLICATION = 'eventplanner.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/1.11/ref/settings/#databases

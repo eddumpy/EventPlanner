@@ -6,13 +6,6 @@ from rest_framework.exceptions import ValidationError
 
 from .models import Event, Category, PhysicalEvent, OnlineEvent, Location
 
-"""
-class ListLocationSerializer(serializers.ListSerializer):
-    def to_representation(self, data):
-        import pdb
-        pdb.set_trace()
-"""
-
 
 class LocationSerializer(serializers.ModelSerializer):
     class Meta:
@@ -31,8 +24,8 @@ class EventListSerializer(serializers.ListSerializer):
     def to_representation(self, data):
         iterable = data.all() if isinstance(data, models.Manager) else data
         serialized_data = [OnlineEventSerializer(context=self.context).to_representation(
-            instance=item._onlineevent_cache) if item._onlineevent_cache else PhysicalEventSerializer(
-            context=self.context).to_representation(instance=item._physicalevent_cache)
+            instance=item) if isinstance(item, OnlineEvent) else PhysicalEventSerializer(
+            context=self.context).to_representation(instance=item)
                            for item in iterable]
         return serialized_data
 
@@ -136,8 +129,3 @@ class PhysicalEventSerializer(EventSerializer):
         model = PhysicalEvent
         fields = EventSerializer.Meta.fields + ('event_type', 'location',)
         depth = 1
-
-    def to_representation(self, instance):
-        if hasattr(instance, '_physicalevent_cache'):
-            instance = instance._physicalevent_cache
-        return super(PhysicalEventSerializer, self).to_representation(instance)

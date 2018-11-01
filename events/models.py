@@ -4,6 +4,7 @@ from django.contrib.auth.models import User
 from django.db import models
 from django.utils import timezone
 from icalendar import Event as Eve, vDatetime
+from polymorphic.models import PolymorphicModel
 
 
 class Category(models.Model):
@@ -20,7 +21,7 @@ class Category(models.Model):
             event.categories.add(self)
 
 
-class Event(models.Model):
+class Event(PolymorphicModel):
     start = models.DateTimeField(auto_now=False)
     end = models.DateTimeField(auto_now=False)
     label = models.CharField(max_length=100)

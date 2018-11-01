@@ -7,7 +7,7 @@ from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 
 from .filters import EventFilter
-from .models import Event, Category, Location
+from .models import Event, Category, Location, PhysicalEvent, OnlineEvent
 from .pagination import EventPagination
 from .permissions import IsOwnerOrReadOnly
 from .serializers import UserSerializer, CategorySerializer, EventCategorySerializer, \
@@ -23,30 +23,22 @@ class EventViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.action in ['retrieve']:
             instance = self.get_object()
-            if getattr(instance, '_onlineevent_cache'):
-                print "1"
+            if isinstance(instance, OnlineEvent):
                 return OnlineEventSerializer
-            elif getattr(instance, '_physicalevent_cache'):
+            elif isinstance(instance, PhysicalEvent):
                 return PhysicalEventSerializer
-            else:
-                print "3"
-                return super(EventViewSet, self).get_serializer_class()
         elif self.action in ['create'] and 'type' in self.request.data:
             if self.request.data['type'] is 'physical':
                 return PhysicalEventSerializer
             elif self.request.data['type'] is 'online':
                 return OnlineEventSerializer
-            else:
-                return super(EventViewSet, self).get_serializer_class()
-        else:
-            return super(EventViewSet, self).get_serializer_class()
+        return super(EventViewSet, self).get_serializer_class()
 
     def perform_create(self, serializer):
         serializer.save(author=serializer.context['request'].user)
 
     def get_queryset(self):
-        return Event.objects.select_related('author', 'onlineevent', 'physicalevent').prefetch_related(
-            'categories', 'physicalevent__location').order_by('start')
+        return Event.objects.select_related('author').prefetch_related('categories', 'physicalevent__location')
 
     @action(detail=True)
     def download_ics(self, request, pk, *args, **kwargs):
