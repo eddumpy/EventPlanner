@@ -3,9 +3,9 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 
-from .models import Event, Category
+from .models import Event, Category, Location
 from .serializers import UserSerializer, CategorySerializer, EventCategorySerializer, \
-    EventSerializer, OnlineEventSerializer, PhysicalEventSerializer
+    EventSerializer, OnlineEventSerializer, PhysicalEventSerializer, LocationSerializer
 from .filters import EventFilter
 from .permissions import IsOwnerOrReadOnly
 from .pagination import EventPagination
@@ -25,10 +25,12 @@ class EventViewSet(viewsets.ModelViewSet):
         if self.action in ['retrieve']:
             instance = self.get_object()
             if getattr(instance, '_onlineevent_cache'):
+                print "1"
                 return OnlineEventSerializer
             elif getattr(instance, '_physicalevent_cache'):
                 return PhysicalEventSerializer
             else:
+                print "3"
                 return super(EventViewSet, self).get_serializer_class()
         elif self.action in ['create'] and 'type' in self.request.data:
             if self.request.data['type'] is 'physical':
@@ -44,9 +46,8 @@ class EventViewSet(viewsets.ModelViewSet):
         serializer.save(author=serializer.context['request'].user)
 
     def get_queryset(self):
-        return Event.objects.select_related('author', 'onlineevent',
-                                            'physicalevent', 'physicalevent__location').prefetch_related(
-            'categories').order_by('start')
+        return Event.objects.select_related('author', 'onlineevent', 'physicalevent').prefetch_related(
+            'categories', 'physicalevent__location').order_by('start')
 
     @action(detail=True)
     def download_ics(self, request, pk, *args, **kwargs):
@@ -98,6 +99,11 @@ class CategoryViewset(viewsets.ModelViewSet):
         return Category.objects.annotate(num_events=Count('event'),
                                          upcoming_event=Min('event__start',
                                                             filter=Q(event__start__gt=timezone.now())))
+
+
+class LocationViewset(viewsets.ModelViewSet):
+    queryset = Location.objects.all()
+    serializer_class = LocationSerializer
 
 
 class UserViewset(viewsets.ModelViewSet):

@@ -65,4 +65,4 @@ class OnlineEvent(Event):
 
 
 class PhysicalEvent(Event):
-    location = models.ForeignKey(Location)
+    location = models.ManyToManyField(Location)

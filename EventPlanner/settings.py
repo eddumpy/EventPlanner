@@ -23,7 +23,6 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_auth',
     'debug_toolbar',
-    'drf_multiple_model',
     'celerybeat_status',
     'django_celery_beat',
     'django_slack_notifications',

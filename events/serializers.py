@@ -7,9 +7,17 @@ from .models import Event, Category, PhysicalEvent, OnlineEvent, Location
 from django.utils import timezone
 from django.contrib.auth.models import User
 
+"""
+class ListLocationSerializer(serializers.ListSerializer):
+    def to_representation(self, data):
+        import pdb
+        pdb.set_trace()
+"""
+
 
 class LocationSerializer(serializers.ModelSerializer):
     class Meta:
+        # list_serializer_class = ListLocationSerializer
         model = Location
         fields = '__all__'
 
@@ -21,7 +29,6 @@ class CategoryTypeSerializer(serializers.ModelSerializer):
 
 
 class EventListSerializer(serializers.ListSerializer):
-
     def to_representation(self, data):
         iterable = data.all() if isinstance(data, models.Manager) else data
         serialized_data = [OnlineEventSerializer(context=self.context).to_representation(
@@ -124,9 +131,14 @@ class OnlineEventSerializer(EventSerializer):
 
 class PhysicalEventSerializer(EventSerializer):
     event_type = serializers.CharField(read_only=True, default="Physical")
-    location = LocationSerializer
+    location = LocationSerializer(many=True, read_only=True)
 
     class Meta(EventSerializer.Meta):
         model = PhysicalEvent
         fields = EventSerializer.Meta.fields + ('event_type', 'location',)
         depth = 1
+
+    def to_representation(self, instance):
+        if hasattr(instance, '_physicalevent_cache'):
+            instance = instance._physicalevent_cache
+        return super(PhysicalEventSerializer, self).to_representation(instance)
