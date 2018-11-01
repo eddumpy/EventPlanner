@@ -1,5 +1,6 @@
-from EventPlanner.celery import app
 from django_slack_notifications.utils import send_text
+
+from EventPlanner.celery import app
 from events.models import Event
 
 

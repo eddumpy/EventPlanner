@@ -1,11 +1,10 @@
+from django.contrib.auth.models import User
+from django.db import models
+from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
-from django.db import models
 
 from .models import Event, Category, PhysicalEvent, OnlineEvent, Location
-
-from django.utils import timezone
-from django.contrib.auth.models import User
 
 """
 class ListLocationSerializer(serializers.ListSerializer):

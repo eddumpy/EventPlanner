@@ -1,18 +1,17 @@
-from rest_framework import viewsets
-from rest_framework.decorators import action
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticatedOrReadOnly
-
-from .models import Event, Category, Location
-from .serializers import UserSerializer, CategorySerializer, EventCategorySerializer, \
-    EventSerializer, OnlineEventSerializer, PhysicalEventSerializer, LocationSerializer
-from .filters import EventFilter
-from .permissions import IsOwnerOrReadOnly
-from .pagination import EventPagination
-
 from django.contrib.auth.models import User
 from django.db.models import Count, Min, Q
 from django.utils import timezone
+from rest_framework import viewsets
+from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
+from rest_framework.response import Response
+
+from .filters import EventFilter
+from .models import Event, Category, Location
+from .pagination import EventPagination
+from .permissions import IsOwnerOrReadOnly
+from .serializers import UserSerializer, CategorySerializer, EventCategorySerializer, \
+    EventSerializer, OnlineEventSerializer, PhysicalEventSerializer, LocationSerializer
 
 
 class EventViewSet(viewsets.ModelViewSet):

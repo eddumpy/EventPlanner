@@ -8,4 +8,4 @@ class EventsConfig(AppConfig):
     name = 'events'
 
     def ready(self):
-        from . import receivers
+        pass

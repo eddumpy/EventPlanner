@@ -1,7 +1,7 @@
 from django.conf.urls import url, include
-from .views import EventCategoryViewset, EventViewSet, UserViewset, CategoryViewset, LocationViewset
 from rest_framework import routers
 
+from .views import EventCategoryViewset, EventViewSet, UserViewset, CategoryViewset, LocationViewset
 
 base_router = routers.DefaultRouter()
 base_router.register('events', EventViewSet, base_name='event')
@@ -16,5 +16,3 @@ urlpatterns = [
     url(r'^events/(?P<parent_pk>[\d]+)/', include(events_router.urls)),
     url(r'^', include(base_router.urls)),
 ]
-
-

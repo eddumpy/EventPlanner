@@ -1,9 +1,9 @@
+from datetime import timedelta
+
+from django.contrib.auth.models import User
 from django.db import models
 from django.utils import timezone
-from django.contrib.auth.models import User
-
 from icalendar import Event as Eve, vDatetime
-from datetime import timedelta
 
 
 class Category(models.Model):

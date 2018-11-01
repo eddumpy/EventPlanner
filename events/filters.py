@@ -1,6 +1,7 @@
 import django_filters as filters
-from .models import Event
 from django.db.models import Q
+
+from .models import Event
 
 
 class EventFilter(filters.FilterSet):
@@ -15,4 +16,4 @@ class EventFilter(filters.FilterSet):
 
     class Meta:
         model = Event
-        fields = ['categories', 'label', 'first_name', 'last_name',]
+        fields = ['categories', 'label', 'first_name', 'last_name', ]

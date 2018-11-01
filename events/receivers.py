@@ -1,8 +1,9 @@
-from django.dispatch import receiver
 from django.db.models.signals import post_save
+from django.dispatch import receiver
+from django_slack_notifications.utils import send_text
+
 from events.models import Event
 from .tasks import event_reminder
-from django_slack_notifications.utils import send_text
 
 
 @receiver(post_save, sender=Event)
